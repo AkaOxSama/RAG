@@ -2,3 +2,8 @@
 .venv/
 # Ignore the data folder for large chuncks of data
 /data/
+# Ignore __pycache__
+__pycache__/
+# Ignore the readme for now
+README.md
+test.py
