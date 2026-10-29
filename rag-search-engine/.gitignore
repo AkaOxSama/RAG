@@ -1,0 +1,4 @@
+# Ingore the uv environment
+.venv/
+# Ignore the data folder for large chuncks of data
+/data/
