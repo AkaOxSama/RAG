@@ -1,2 +1,2 @@
 To start the uv environment use:
-    source .venv/bin/activate
+    cd rag-search-engine && source .venv/bin/activate
