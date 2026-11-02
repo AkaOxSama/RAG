@@ -11,6 +11,7 @@ from collections import defaultdict
 import string
 import os
 import pickle
+import sys
 
 # List of movies
 movies_data_dict = read_data()
@@ -54,7 +55,12 @@ class InvertedIndex:
         with open(self.docmap_path, "wb") as file:
             pickle.dump(self.docmap, file)
 
-    
+    def load(self) -> None:
+        with open(self.index_path, "rb") as file:
+            self.index = pickle.load(file)
+        with open(self.docmap_path, "rb") as file:
+            self.docmap = pickle.load(file)
+
 
 def build_command() -> None:
     index = InvertedIndex()
@@ -64,26 +70,47 @@ def build_command() -> None:
 
 # Helper function to create a list of search results by name (Case Sensitive and non-relational)
 def search_command(search_query: str, limit: int = MAX_RESULTS) -> list[str]:
-    search_list: list[str] = []
+    result_list: list[str] = []
 
+    seen_result = set()
 
-    for movie in movies_data_dict:
-        # Take the id and the title of each movie
-        _id: int = movie["id"]
-        _title: str = movie["title"]
-        # Convert the query and the title into a list of tokens
-        query_tokens: list[str] = tokenizer(search_query)
-        title_tokens: list[str] = tokenizer(_title)
+    # Convert the query and the title into a list of tokens
+    query_tokens: list[str] = tokenizer(search_query)
+    # Creates an index of every movie
+    index = InvertedIndex()
+    try:
+        index.load()
+    except FileNotFoundError:
+        print("Error: file(s) not found. Exiting program")
+        sys.exit(1)
 
-        stop_words: list[str] = p_stop_words(s_words_list)
+    # Iterate over every query token
+    for query_t in query_tokens:
+        # Get a list of index that match the query token
+        query_match: list[int] = index.get_documents(query_t)
+        # Iterate over every index and return a list of movie id and title
+        for q_index in query_match:
+            if q_index in seen_result:
+                continue
+
+            seen_result.add(q_index)
+
+            m_id: int = index.docmap[q_index]["id"]
+            m_title: str = index.docmap[q_index]["title"]
+
+            result_list.append(f"{m_id}. {m_title}")
             
+            result_count += 1
+        # If the returned list exceeds a limit, stop.
+
         # Check membership between each  query token and title token
+        """
         if check_membership(query_tokens, title_tokens): # Only pass if at least 1 membership
             search_list.append(f"{_id}. {_title}")
             if len(search_list) >= limit:
-                break
+                break"""
 
-    return search_list
+    return result_list
 
 # Wrap function to clean the code
 def tokenizer(text: str) -> list[str]:
@@ -133,13 +160,6 @@ def clean_stop_words(tokens: list[str], stop_words: list[str]) -> list[str]:
             clean_up.append(stemmer.stem(token))
 
     return clean_up
-
-# Helper function for membership logic
-def check_membership(query_tokens: list[str], data_token: list[str]) -> bool:
-    for query_token in query_tokens:
-        if any(query_token in title for title in data_token):
-            return True
-    return False
 
 # Helper function to preprocess each stop word
 def p_stop_words(stop_words: list[str]) -> list[str]:

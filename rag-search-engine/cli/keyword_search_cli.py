@@ -1,5 +1,7 @@
 import argparse
 import json
+import sys
+
 from typing import Any
 
 from lib.keyword_search import search_command, build_command
