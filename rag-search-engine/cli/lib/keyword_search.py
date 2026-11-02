@@ -1,6 +1,14 @@
-from .search_utils import movies_data_dict, s_words_list, MAX_RESULTS
+from .search_utils import read_stop_words, read_data, MAX_RESULTS
+from nltk.stem import PorterStemmer
 
 import string
+
+# List of movies
+movies_data_dict = read_data()
+# List of stop words
+s_words_list: list[str] = read_stop_words()
+# Stemmer instance
+stemmer = PorterStemmer()
 
 # Helper function to create a list of search results by name (Case Sensitive and non-relational)
 def search_command(search_query: str, limit: int = MAX_RESULTS) -> list[str]:
@@ -14,6 +22,8 @@ def search_command(search_query: str, limit: int = MAX_RESULTS) -> list[str]:
             # Convert the query and the title into a list of tokens
             query_tokens: list[str] = tokenizer(search_query)
             title_tokens: list[str] = tokenizer(_title)
+
+            stop_words: list[str] = p_stop_words(s_words_list)
             
             # Check membership between each  query token and title token
             if check_membership(query_tokens, title_tokens): # Only pass if at least 1 membership
@@ -25,11 +35,13 @@ def search_command(search_query: str, limit: int = MAX_RESULTS) -> list[str]:
 
 # Wrap function to clean the code
 def tokenizer(text: str) -> list[str]:
+    # Clean up punctuation
     proc_text: str = string_filter(text)
+    # Converts the text into tokens
     tokens: list[str] = token_converter(proc_text)
-
+    # Load the curated stop words list
     stop_words: list[str] = p_stop_words(s_words_list)
-
+    # Filter out the stop words from the stemmed query tokens
     prc_tokens: list[str] = clean_stop_words(tokens, stop_words)
     return prc_tokens
 
@@ -62,8 +74,13 @@ def token_converter(text: str) ->list[str]:
 
 # Helper function to filter tokens by stopwords
 def clean_stop_words(tokens: list[str], stop_words: list[str]) -> list[str]:
-    # TODO: Complete this function mmgvo
-    return []
+    clean_up: list[str] = []
+    for token in tokens:
+        if token not in stop_words:
+            # Append the stemmed version of the token
+            clean_up.append(stemmer.stem(token))
+
+    return clean_up
 
 
 # Helper function for membership logic

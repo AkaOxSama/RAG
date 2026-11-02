@@ -6,4 +6,5 @@
 __pycache__/
 # Ignore the readme for now
 README.md
+
 test.py
