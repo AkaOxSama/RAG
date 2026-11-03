@@ -12,6 +12,7 @@ import string
 import os
 import pickle
 import sys
+import math
 
 # List of movies
 movies_data_dict = read_data()
@@ -26,12 +27,12 @@ class InvertedIndex:
         self.index = defaultdict(set)
         # A dictionary that maps an id to a Movie object
         self.docmap: dict[int, Movie] = {}
+        # A dictionary mapping IDs to a Counter Objects
+        self.term_frequencies: dict[int, Counter] = defaultdict(Counter)
         # Filepaths
         self.index_path: str = os.path.join(CACHE_PATH, "index.pkl")
         self.docmap_path: str = os.path.join(CACHE_PATH, "docmap.pkl")
         self.term_frequencies_path: str = os.path.join(CACHE_PATH, "term_frequencies.pkl")
-        # A dictionary mapping IDs to a Counter Objects
-        self.term_frequencies: dict[int, Counter] = defaultdict(Counter)
 
 
 
@@ -64,7 +65,7 @@ class InvertedIndex:
             self.__add_document(doc_id, doc_desc)
             self.docmap[doc_id] = movie
 
-    # Method to save the index and docmap dictionaries in disc
+    # Method to save the index, docmap and term frequencies dictionaries in disc
     def save(self) -> None:
         os.makedirs(CACHE_PATH, exist_ok=True)
         with open(self.index_path, "wb") as file:
@@ -74,7 +75,7 @@ class InvertedIndex:
         with open(self.term_frequencies_path, "wb") as file:
             pickle.dump(self.term_frequencies, file)
 
-    # Method to load the index and docmap dictionaries from disc
+    # Method to load the index, docmap and term frequencies dictionaries from disc
     def load(self) -> None:
         with open(self.index_path, "rb") as file:
             self.index = pickle.load(file)
@@ -85,13 +86,13 @@ class InvertedIndex:
 
 
 
-# Function to build the cache files
+# Command to build the cache files
 def build_command() -> None:
     index = InvertedIndex()
     index.build()
     index.save()
 
-# Function to create a list of search results by name (Case Sensitive and non-relational)
+# Command to create a list of search results by name (Case Sensitive and non-relational)
 def search_command(search_query: str, limit: int = MAX_RESULTS) -> list[str]:
     result_list: list[str] = []
 
@@ -128,6 +129,7 @@ def search_command(search_query: str, limit: int = MAX_RESULTS) -> list[str]:
 
     return result_list
 
+# Command to get the term frequency of a given term
 def tf_command(doc_id: int, term: str) -> int:
     index = InvertedIndex()
     try:
@@ -137,10 +139,33 @@ def tf_command(doc_id: int, term: str) -> int:
         sys.exit(1)
 
     token: str = single_tokenizer(term)
-    print("SEARCH TOKEN:", repr(token))
-    print("FREQUENCY:", index.get_tf(doc_id, token))
     return index.get_tf(doc_id, token)
 
+# Command to get the inverse document index of a given term
+def idf_command(term: str) -> float:
+    index = InvertedIndex()
+    try:
+        index.load()
+    except FileNotFoundError:
+        print("Error: file(s) not found. Exiting program")
+        sys.exit(1)
+
+    token: str = single_tokenizer(term)
+    token_index: list[int] = index.get_documents(token)
+    term_match_doc_count: int = len(token_index)
+
+    total_doc_count: int = len(index.docmap)
+
+    idf_value: float = math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+
+    return idf_value
+
+# Command to get the TF-IDF score of a given document and term
+def tfidf_command(doc_id: int, term:str) -> float:
+    tf = tf_command(doc_id, term)
+    idf = idf_command(term)
+
+    return tf * idf
 
 
 # Wrap function to clean the code
@@ -198,8 +223,9 @@ def p_stop_words(stop_words: list[str]) -> list[str]:
         stop_words[i] = string_filter(stop_words[i])
     return stop_words
 
+# Helper function to tokenize a single term
 def single_tokenizer(term: str) -> str:
     token: list[str] = tokenizer(term)
     if len(token) != 1:
-        raise Exception("Invalid token")
+        raise ValueError("Invalid token")
     return token[0]
