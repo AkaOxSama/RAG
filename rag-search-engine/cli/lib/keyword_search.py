@@ -62,7 +62,8 @@ class InvertedIndex:
 
     # Return the frequency of a single token on a given id
     def get_tf(self, doc_id: int, term: str) -> int:
-        return self.term_frequencies[doc_id][term]
+        token: str = single_tokenizer(term)
+        return self.term_frequencies[doc_id][token]
 
     # Return each id from a token in ascending order
     def get_documents(self, term: str) -> list[int]:
@@ -105,6 +106,32 @@ class InvertedIndex:
 
         bm25_sat: float = (tf * (k1 + 1)) / (tf + k1 * length_norm)
         return bm25_sat
+
+
+    # Returns the BM25 score from a doc ID and a term
+    def bm25(self, doc_id: int, term:str) -> float:
+        tf: float = self.get_bm25_tf(doc_id, term)
+        idf: float = self.get_bm25_idf(term)
+
+        return tf * idf
+
+    # Returns LIMIT documents based on a BM25 score
+    def bm25_search(self, query: str, limit=MAX_RESULTS) -> list[tuple[int, str]]:
+        tokens: list[str] = tokenizer(query)
+        scores: dict[int, float] = {}
+        return_scores = []
+
+        for document in self.docmap.values():
+            for token in tokens:
+                doc_id: int = document["id"]
+                scores[doc_id] = scores.get(doc_id, 0) + self.bm25(doc_id, token)
+
+        sorted_scores: dict[int, float] = dict(sorted(scores.items(), key=lambda item: item[1], reverse=True)[:limit])
+
+        for s_doc_id, s_bm25 in sorted_scores.items():
+            return_scores.append((s_doc_id, s_bm25))
+
+        return return_scores
 
   
     # Method to build the index and docmap dictionaries from the data file
@@ -200,8 +227,7 @@ def tf_command(doc_id: int, term: str) -> int:
         print("Error: file(s) not found. Exiting program")
         sys.exit(1)
 
-    token: str = single_tokenizer(term)
-    return index.get_tf(doc_id, token)
+    return index.get_tf(doc_id, term)
 
 # Command to get the inverse document index of a given term
 def idf_command(term: str) -> float:
@@ -242,6 +268,24 @@ def bm25_tf_command(doc_id: int, term: str, k1=BM25_K1, b=BM25_B) -> float:
         sys.exit(1)
 
     return index.get_bm25_tf(doc_id, term, k1, b)
+
+# Comand to get the LIMIT results from a search query using BM25 score method
+def bm25_command(search_query: str) -> list[str]:
+    index = InvertedIndex()
+    try:
+        index.load()
+    except FileNotFoundError:
+        print("Error: file(s) not found. Exiting program")
+        sys.exit(1)
+
+    format_results: list[str] = []
+
+    document_info: list[tuple[int, str]] = index.bm25_search(search_query)
+    for i in range(len(document_info)):
+        movie_title: str = index.docmap[document_info[i][0]]["title"]
+        format_results.append(f"{i + 1}. ({document_info[i][0]}) {movie_title} - Score: {document_info[i][1]:.2f}")
+
+    return format_results
 
 
 # Wrap function to clean the code
