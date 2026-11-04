@@ -19,8 +19,11 @@ CACHE_PATH: str = os.path.join(PROJECT_ROOT, "cache")
 
 # Maximum results shown when returning a search
 MAX_RESULTS = 5
+
 # Saturation control
 BM25_K1 = 1.5
+# Lenght normalization control
+BM25_B = 0.75
 
 
 # Create a list of stop words

@@ -5,7 +5,8 @@ import sys
 from typing import Any
 
 from lib.search_utils import(
-    BM25_K1
+    BM25_K1,
+    BM25_B,
 )
 
 from lib.keyword_search import (
@@ -49,6 +50,7 @@ def main() -> None:
     bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
     bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25_tf_parser.add_argument("k1", type=float, nargs="?", default=BM25_K1, help="Tunable BM25 K1 parameter")
+    bm25_tf_parser.add_argument("b", type=float, nargs="?", default=BM25_B, help="Tunable BM25 b parameter")
 
     # Command to search a movie
     search_parser = subparsers.add_parser("search", help="Search movies using keywords")
@@ -92,7 +94,7 @@ def main() -> None:
 
         case "bm25tf":
             print(f"Getting the BM25 TF score from document ID: {args.doc_id} and term {args.term}")
-            bm25_tf = bm25_tf_command(args.doc_id, args.term)
+            bm25_tf: float = bm25_tf_command(args.doc_id, args.term)
             print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25_tf:.2f}")
 
         case _:

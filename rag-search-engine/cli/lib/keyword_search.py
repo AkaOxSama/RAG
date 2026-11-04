@@ -4,6 +4,7 @@ from .search_utils import (
     MAX_RESULTS,
     CACHE_PATH,
     BM25_K1,
+    BM25_B,
     Movie,
 )
 from nltk.stem import PorterStemmer
@@ -30,10 +31,13 @@ class InvertedIndex:
         self.docmap: dict[int, Movie] = {}
         # A dictionary mapping IDs to a Counter Objects
         self.term_frequencies: dict[int, Counter] = defaultdict(Counter)
+        # Lenght of a document
+        self.doc_lengths: dict[int, int] = {}
         # Filepaths
         self.index_path: str = os.path.join(CACHE_PATH, "index.pkl")
         self.docmap_path: str = os.path.join(CACHE_PATH, "docmap.pkl")
         self.term_frequencies_path: str = os.path.join(CACHE_PATH, "term_frequencies.pkl")
+        self.doc_lengths_path: str = os.path.join(CACHE_PATH, "doc_lengths.pkl")
 
 
 
@@ -45,6 +49,15 @@ class InvertedIndex:
             self.index[token].add(doc_id)
 
         self.term_frequencies[doc_id].update(t_text)
+        self.doc_lengths[doc_id] = len(t_text)
+
+    # Get the calculated average length of a document
+    def __get_avg_doc_length(self) -> float:
+        if len(self.docmap) == 0:
+            return 0.0
+        
+        sum_doc_length: int = sum(self.doc_lengths.values())
+        return sum_doc_length / len(self.docmap)
 
 
     # Return the frequency of a single token on a given id
@@ -78,14 +91,21 @@ class InvertedIndex:
         return bm25_value
 
     # Return the BM25 TF socre from a term and a document ID
-    def get_bm25_tf(self, doc_id: int, term: str, k1=BM25_K1) -> float:
+    def get_bm25_tf(self, doc_id: int, term: str, k1:float = BM25_K1, b:float = BM25_B) -> float:
         token: str = single_tokenizer(term)
         tf: int = self.get_tf(doc_id, token)
 
-        bm25_sat: float = (tf * (k1 + 1) / (tf + k1))
+        doc_length: int = self.doc_lengths.get(doc_id, 0)
+        avg_doc_length: float = self.__get_avg_doc_length()
+
+        if avg_doc_length > 0:
+            length_norm: float = 1 - b + b * (doc_length / avg_doc_length)
+        else:
+            length_norm = 1
+
+        bm25_sat: float = (tf * (k1 + 1)) / (tf + k1 * length_norm)
         return bm25_sat
 
-    
   
     # Method to build the index and docmap dictionaries from the data file
     def build(self) -> None:
@@ -98,24 +118,34 @@ class InvertedIndex:
             self.__add_document(doc_id, doc_desc)
             self.docmap[doc_id] = movie
 
-    # Method to save the index, docmap and term frequencies dictionaries in disc
+    # Method to save the attributes dictionaries in disc
     def save(self) -> None:
         os.makedirs(CACHE_PATH, exist_ok=True)
         with open(self.index_path, "wb") as file:
             pickle.dump(self.index, file)
+
         with open(self.docmap_path, "wb") as file:
             pickle.dump(self.docmap, file)
+
         with open(self.term_frequencies_path, "wb") as file:
             pickle.dump(self.term_frequencies, file)
 
-    # Method to load the index, docmap and term frequencies dictionaries from disc
+        with open(self.doc_lengths_path, "wb") as file:
+            pickle.dump(self.doc_lengths, file)
+
+    # Method to load the attributes dictionaries from disc
     def load(self) -> None:
         with open(self.index_path, "rb") as file:
             self.index = pickle.load(file)
+
         with open(self.docmap_path, "rb") as file:
             self.docmap = pickle.load(file)
+
         with open(self.term_frequencies_path, "rb") as file:
             self.term_frequencies = pickle.load(file)
+
+        with open(self.doc_lengths_path, "rb") as file:
+            self.doc_lengths = pickle.load(file)
 
 
 # Command to build the cache files
@@ -203,7 +233,7 @@ def bm25_idf_command(term: str) -> float:
     return index.get_bm25_idf(term)
 
 # Comand to get the BM25 TF score of a term and a doc ID
-def bm25_tf_command(doc_id: int, term: str, k1=BM25_K1) -> float:
+def bm25_tf_command(doc_id: int, term: str, k1=BM25_K1, b=BM25_B) -> float:
     index = InvertedIndex()
     try:
         index.load()
@@ -211,7 +241,7 @@ def bm25_tf_command(doc_id: int, term: str, k1=BM25_K1) -> float:
         print("Error: file(s) not found. Exiting program")
         sys.exit(1)
 
-    return index.get_bm25_tf(doc_id, term, k1)
+    return index.get_bm25_tf(doc_id, term, k1, b)
 
 
 # Wrap function to clean the code
