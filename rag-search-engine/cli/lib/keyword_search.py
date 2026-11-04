@@ -45,6 +45,7 @@ class InvertedIndex:
 
         self.term_frequencies[doc_id].update(t_text)
 
+
     # Return the frequency of a single token on a given id
     def get_tf(self, doc_id: int, term: str) -> int:
         return self.term_frequencies[doc_id][term]
@@ -64,6 +65,17 @@ class InvertedIndex:
 
         idf_value: float = math.log((total_doc_count + 1) / (term_match_doc_count + 1))
         return idf_value
+
+    # Return the BM25 score from a term
+    def get_bm25_idf(self, term: str) -> float:
+        token: str = single_tokenizer(term)
+
+        doc_f: int = len(self.get_documents(token))
+        tot_d: int = len(self.docmap)
+
+        bm25_value: float = math.log((tot_d - doc_f + 0.5) / (doc_f + 0.5) + 1)
+        return bm25_value
+    
     
     # Method to build the index and docmap dictionaries from the data file
     def build(self) -> None:
@@ -94,7 +106,6 @@ class InvertedIndex:
             self.docmap = pickle.load(file)
         with open(self.term_frequencies_path, "rb") as file:
             self.term_frequencies = pickle.load(file)
-
 
 
 # Command to build the cache files
@@ -163,13 +174,23 @@ def idf_command(term: str) -> float:
 
     return index.get_idf(term)
 
-
 # Command to get the TF-IDF score of a given document and term
 def tfidf_command(doc_id: int, term:str) -> float:
     tf: int = tf_command(doc_id, term)
     idf: float = idf_command(term)
 
     return tf * idf
+
+# Command to get the BM25 score of a term
+def bm25_idf_command(term: str) -> float:
+    index = InvertedIndex()
+    try:
+        index.load()
+    except FileNotFoundError:
+        print("Error: file(s) not found. Exiting program")
+        sys.exit(1)
+
+    return index.get_bm25_idf(term)
 
 
 # Wrap function to clean the code
