@@ -53,6 +53,17 @@ class InvertedIndex:
     def get_documents(self, term: str) -> list[int]:
         results = self.index.get(term, set())
         return sorted(results)
+
+    # Return the IDF score of a given term
+    def get_idf(self, term: str) -> float:
+        token: str = single_tokenizer(term)
+
+        token_index: list[int] = self.get_documents(token)
+        term_match_doc_count: int = len(token_index)
+        total_doc_count: int = len(self.docmap)
+
+        idf_value: float = math.log((total_doc_count + 1) / (term_match_doc_count + 1))
+        return idf_value
     
     # Method to build the index and docmap dictionaries from the data file
     def build(self) -> None:
@@ -150,20 +161,13 @@ def idf_command(term: str) -> float:
         print("Error: file(s) not found. Exiting program")
         sys.exit(1)
 
-    token: str = single_tokenizer(term)
-    token_index: list[int] = index.get_documents(token)
-    term_match_doc_count: int = len(token_index)
+    return index.get_idf(term)
 
-    total_doc_count: int = len(index.docmap)
-
-    idf_value: float = math.log((total_doc_count + 1) / (term_match_doc_count + 1))
-
-    return idf_value
 
 # Command to get the TF-IDF score of a given document and term
 def tfidf_command(doc_id: int, term:str) -> float:
-    tf = tf_command(doc_id, term)
-    idf = idf_command(term)
+    tf: int = tf_command(doc_id, term)
+    idf: float = idf_command(term)
 
     return tf * idf
 
