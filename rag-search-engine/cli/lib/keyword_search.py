@@ -3,6 +3,7 @@ from .search_utils import (
     read_stop_words,
     MAX_RESULTS,
     CACHE_PATH,
+    BM25_K1,
     Movie,
 )
 from nltk.stem import PorterStemmer
@@ -66,7 +67,7 @@ class InvertedIndex:
         idf_value: float = math.log((total_doc_count + 1) / (term_match_doc_count + 1))
         return idf_value
 
-    # Return the BM25 score from a term
+    # Return the BM25 IDF score from a term
     def get_bm25_idf(self, term: str) -> float:
         token: str = single_tokenizer(term)
 
@@ -75,8 +76,17 @@ class InvertedIndex:
 
         bm25_value: float = math.log((tot_d - doc_f + 0.5) / (doc_f + 0.5) + 1)
         return bm25_value
+
+    # Return the BM25 TF socre from a term and a document ID
+    def get_bm25_tf(self, doc_id: int, term: str, k1=BM25_K1) -> float:
+        token: str = single_tokenizer(term)
+        tf: int = self.get_tf(doc_id, token)
+
+        bm25_sat: float = (tf * (k1 + 1) / (tf + k1))
+        return bm25_sat
+
     
-    
+  
     # Method to build the index and docmap dictionaries from the data file
     def build(self) -> None:
         movies: list[Movie] = read_data()
@@ -181,7 +191,7 @@ def tfidf_command(doc_id: int, term:str) -> float:
 
     return tf * idf
 
-# Command to get the BM25 score of a term
+# Command to get the BM25 IDF score of a term
 def bm25_idf_command(term: str) -> float:
     index = InvertedIndex()
     try:
@@ -191,6 +201,17 @@ def bm25_idf_command(term: str) -> float:
         sys.exit(1)
 
     return index.get_bm25_idf(term)
+
+# Comand to get the BM25 TF score of a term and a doc ID
+def bm25_tf_command(doc_id: int, term: str, k1=BM25_K1) -> float:
+    index = InvertedIndex()
+    try:
+        index.load()
+    except FileNotFoundError:
+        print("Error: file(s) not found. Exiting program")
+        sys.exit(1)
+
+    return index.get_bm25_tf(doc_id, term, k1)
 
 
 # Wrap function to clean the code
