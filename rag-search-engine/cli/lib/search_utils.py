@@ -4,9 +4,14 @@ import os
 from typing import Any, TypedDict
 
 # Movie object
-
 class Movie(TypedDict):
     id: int
+    title: str
+    description: str
+
+# Semantic Movie Object
+class S_Search_Result(TypedDict):
+    score: float
     title: str
     description: str
     

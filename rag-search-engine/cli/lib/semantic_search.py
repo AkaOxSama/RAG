@@ -5,6 +5,7 @@ from sentence_transformers import SentenceTransformer
 from typing import Any
 from lib.search_utils import (
     Movie,
+    S_Search_Result,
     read_data,
     CACHE_PATH,
 )
@@ -17,6 +18,7 @@ class SemanticSearch:
         self.document_map = {}
 
         self.embeddings_path: str = os.path.join(CACHE_PATH, "movie_embeddings.npy")
+
 
     # Generates and embeding of a single piece of text
     def generate_embedding(self, text: str) -> Any:
@@ -53,6 +55,39 @@ class SemanticSearch:
                 return self.embeddings
             
         return self.build_embeddings(documents)
+
+
+    # Search for embedded vectors using a query
+    def search(self, query: str, limit:int) -> list[S_Search_Result]:
+        if self.embeddings is None:
+            raise ValueError("No embeddings loaded. Call `load_or_create_embeddings` first.")
+        if self.documents is None or len(self.documents) == 0:
+            raise ValueError("No documents loaded. Call `load_or_create_embeddings` first.")
+
+        q_embedding = self.generate_embedding(query)
+        docs_similarities: list[tuple[float, Movie]] = []
+
+        for i, d_embedding in enumerate(self.embeddings):
+            similarity_score: float = cosine_similarity(q_embedding, d_embedding)
+            doc: Movie = self.documents[i]
+
+            docs_similarities.append((similarity_score, doc))
+
+        docs_similarities.sort(key=lambda x: x[0], reverse=True)
+
+        top_results: list[S_Search_Result] = []
+
+        for score, doc in docs_similarities[:limit]:
+            top_results.append(
+                {
+                    "score": score,
+                    "title": doc["title"],
+                    "description": doc["description"],
+                }
+            )
+
+        return top_results
+
 
 
 # Command to verify the model
@@ -93,5 +128,35 @@ def embed_query_text(query: str):
     print(f"Query: {query}")
     print(f"First 3 dimensions: {embedding[:3]}")
     print(f"Shape: {embedding.shape}")
+
+# Comand to use semantic search on a query
+def semantic_search(query:str, limit=5):
+    semantic_model = SemanticSearch()
+
+    movies: list[Movie] = read_data()
+
+    semantic_model.load_or_create_embeddings(movies)
+
+    results: list[S_Search_Result] = semantic_model.search(query, limit)
+
+    print(f"Query: '{query}'")
+    print(f"Top {len(results)} results:")
+    print()
+
+    for i, result in enumerate(results, 1):
+        print(f"{i}. {result['title']} (score: {result['score']:.4f})\n  {result['description'][:100]}...")
+        print()
+
+
+# Helper function to get cosine similarities between two vectors
+def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
 
 
