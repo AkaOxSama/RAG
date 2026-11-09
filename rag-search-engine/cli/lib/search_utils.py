@@ -24,6 +24,8 @@ CACHE_PATH: str = os.path.join(PROJECT_ROOT, "cache")
 
 # Maximum results shown when returning a search
 MAX_RESULTS = 5
+# Default Chunk Size
+DEFAULT_CHUNK_SIZE = 200
 
 # Saturation control
 BM25_K1 = 1.5

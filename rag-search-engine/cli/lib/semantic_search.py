@@ -108,7 +108,6 @@ def verify_embeddings():
     print(f"Number of docs:   {len(movies)}")
     print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]} dimensions")
 
-
 # Command to embed a single piece of text
 def embed_text(text: str) -> Any:
     semantic_model = SemanticSearch()
@@ -130,7 +129,7 @@ def embed_query_text(query: str):
     print(f"Shape: {embedding.shape}")
 
 # Comand to use semantic search on a query
-def semantic_search(query:str, limit=5):
+def semantic_search(query:str, limit):
     semantic_model = SemanticSearch()
 
     movies: list[Movie] = read_data()
@@ -146,6 +145,23 @@ def semantic_search(query:str, limit=5):
     for i, result in enumerate(results, 1):
         print(f"{i}. {result['title']} (score: {result['score']:.4f})\n  {result['description'][:100]}...")
         print()
+
+# Command to divide text into chunks
+def text_chunk(text: str, chunk_size) -> None:
+    characters: int = len(text)
+    chunks = []
+    words: list[str] = text.split()
+    i = 0
+
+    while i < len(words):
+        chunk: list[str] = words[i: i + chunk_size]
+        chunks.append(chunk)
+        i += chunk_size
+
+    print(f"Chunking {characters} characters")
+    for i, chunk in enumerate(chunks, 1):
+        print(f"{i}. {" ".join(chunk)}")
+        
 
 
 # Helper function to get cosine similarities between two vectors
