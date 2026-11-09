@@ -147,14 +147,19 @@ def semantic_search(query:str, limit):
         print()
 
 # Command to divide text into chunks
-def text_chunk(text: str, chunk_size) -> None:
+def text_chunk(text: str, chunk_size: int, overlap: int) -> None:
+
+    
     characters: int = len(text)
     chunks = []
     words: list[str] = text.split()
-    i = 0
+    i: int = overlap
 
     while i < len(words):
-        chunk: list[str] = words[i: i + chunk_size]
+        if i == overlap:
+            chunk = words[i - overlap: i + chunk_size - overlap]
+        else:
+            chunk: list[str] = words[i - overlap * 2: i + chunk_size - overlap]
         chunks.append(chunk)
         i += chunk_size
 

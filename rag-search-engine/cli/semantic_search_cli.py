@@ -10,7 +10,8 @@ from lib.semantic_search import (
 )
 from lib.search_utils import (
     MAX_RESULTS,
-    DEFAULT_CHUNK_SIZE
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_OVERLAP_SIZE,
 )
 
 def main() -> None:
@@ -39,6 +40,7 @@ def main() -> None:
     chunk_parser = subparsers.add_parser("chunk", help="Creates chunks from a text")
     chunk_parser.add_argument("text", type=str, help="Text to divide in chunks")
     chunk_parser.add_argument("--chunk-size", type=int, nargs="?", default=DEFAULT_CHUNK_SIZE, help="The number of chunks the text will be divided into")
+    chunk_parser.add_argument("--overlap", type=int, nargs="?", default=DEFAULT_OVERLAP_SIZE,help="number of words that overlaps on each chunk")
 
     args = parser.parse_args()
 
@@ -60,7 +62,7 @@ def main() -> None:
             semantic_search(args.query, args.limit)
 
         case "chunk":
-            text_chunk(args.text, args.chunk_size)
+            text_chunk(args.text, args.chunk_size, args.overlap)
 
         case _:
             parser.print_help()

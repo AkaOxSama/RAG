@@ -26,6 +26,7 @@ CACHE_PATH: str = os.path.join(PROJECT_ROOT, "cache")
 MAX_RESULTS = 5
 # Default Chunk Size
 DEFAULT_CHUNK_SIZE = 200
+DEFAULT_OVERLAP_SIZE = 1 
 
 # Saturation control
 BM25_K1 = 1.5
