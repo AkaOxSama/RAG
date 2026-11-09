@@ -8,6 +8,7 @@ from lib.semantic_search import (
     semantic_search,
     text_chunk,
     semantic_chunk,
+    embed_chunks,
 )
 from lib.search_utils import (
     MAX_RESULTS,
@@ -49,6 +50,9 @@ def main() -> None:
     semantic_chunk_parser.add_argument("--max-chunk-size", type=int, nargs="?", default=4, help="Maximum size allowed for the chunk")
     semantic_chunk_parser.add_argument("--overlap", type=int, nargs="?", default=0, help="Overlap between chunks allowed")
 
+    # Embed chunks command
+    embed_chunks_parser = subparsers.add_parser("embed_chunks", help="Creates chunk embeddings from a document")
+
     args = parser.parse_args()
 
     match args.command:
@@ -69,10 +73,21 @@ def main() -> None:
             semantic_search(args.query, args.limit)
 
         case "chunk":
-            text_chunk(args.text, args.chunk_size, args.overlap)
+            characters = len(args.text)
+            chunks: list[str] = text_chunk(args.text, args.chunk_size, args.overlap)
+            print(f"Chunking {characters} characters")
+            for i, chunk in enumerate(chunks, 1):
+                print(f"{i}. {" ".join(chunk)}")
 
         case "semantic_chunk":
-            semantic_chunk(args.text, args.max_chunk_size, args.overlap)
+            characters: int = len(args.text)
+            chunks: list[str] = semantic_chunk(args.text, args.max_chunk_size, args.overlap)
+            print(f"Semantically chunking {characters} characters")
+            for i, chunk in enumerate(chunks, 1):
+                print(f"{i}. {chunk}")
+
+        case "embed_chunks":
+            embed_chunks()
 
         case _:
             parser.print_help()

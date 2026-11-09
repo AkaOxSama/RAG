@@ -14,6 +14,11 @@ class S_Search_Result(TypedDict):
     score: float
     title: str
     description: str
+
+class ChunkMetadata(TypedDict):
+    movie_idx: int
+    chunk_idx: int
+    total_chunks: int
     
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -27,6 +32,9 @@ MAX_RESULTS = 5
 # Default Chunk Size
 DEFAULT_CHUNK_SIZE = 200
 DEFAULT_OVERLAP_SIZE = 1 
+
+# Default semantic chunk size
+DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 
 # Saturation control
 BM25_K1 = 1.5
