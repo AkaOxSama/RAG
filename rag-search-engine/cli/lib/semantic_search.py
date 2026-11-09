@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import re
 
 from sentence_transformers import SentenceTransformer
 from typing import Any
@@ -148,25 +149,40 @@ def semantic_search(query:str, limit):
 
 # Command to divide text into chunks
 def text_chunk(text: str, chunk_size: int, overlap: int) -> None:
-
-    
     characters: int = len(text)
     chunks = []
     words: list[str] = text.split()
-    i: int = overlap
+    i: int = 0
 
     while i < len(words):
-        if i == overlap:
-            chunk = words[i - overlap: i + chunk_size - overlap]
-        else:
-            chunk: list[str] = words[i - overlap * 2: i + chunk_size - overlap]
-        chunks.append(chunk)
-        i += chunk_size
+            chunk_sentences = words[i : i + chunk_size]
+            if chunks and len(chunk_sentences) <= overlap:
+                break
+            chunks.append(" ".join(chunk_sentences))
+            i += chunk_size - overlap
 
     print(f"Chunking {characters} characters")
     for i, chunk in enumerate(chunks, 1):
         print(f"{i}. {" ".join(chunk)}")
-        
+
+# Command to divide text into semantic chunks
+def semantic_chunk(text:str, max_chunk_size: int, overlap: int) -> None:
+    characters = len(text)
+    sentences: list[str | Any] = re.split(r"(?<=[.!?])\s+", text)
+
+    chunks: list[str] = []
+    i = 0
+    
+    while i < len(sentences):
+        chunk_sentences = sentences[i : i + max_chunk_size]
+        if chunks and len(chunk_sentences) <= overlap:
+            break
+        chunks.append(" ".join(chunk_sentences))
+        i += max_chunk_size - overlap
+
+    print(f"Semantically chunking {characters} characters")
+    for i, chunk in enumerate(chunks, 1):
+        print(f"{i}. {chunk}")
 
 
 # Helper function to get cosine similarities between two vectors
