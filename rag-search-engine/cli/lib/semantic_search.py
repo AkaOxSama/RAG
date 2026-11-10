@@ -10,10 +10,13 @@ from lib.search_utils import (
     Movie,
     S_Search_Result,
     ChunkMetadata,
+    ChunkScore,
+    ChunkMovieResults,
     read_data,
     CACHE_PATH,
     DEFAULT_SEMANTIC_CHUNK_SIZE,
-    DEFAULT_OVERLAP_SIZE
+    DEFAULT_OVERLAP_SIZE,
+    MAX_RESULTS,
 )
 
 EmbeddingArray = NDArray[Any]
@@ -169,6 +172,50 @@ class ChunkedSemanticSearch(SemanticSearch):
 
         return self.build_chunk_embeddings(documents)
 
+    def search_chunks(self, query:str, limit: int = 10) -> list[ChunkMovieResults]:
+        if self.chunk_embeddings is None:
+            raise ValueError("Embeddings not loaded. Run command 'embed_chunks' first.")
+        if self.chunk_metadata is None or len(self.chunk_metadata) == 0:
+            raise ValueError("Chunk metadata not loaded. Run command 'embed_chunks' first.")
+        
+        embedding: EmbeddingArray = self.generate_embedding(query)
+        chunk_scores: list[ChunkScore] = []
+
+        for i, c_emb in enumerate(self.chunk_embeddings):
+            cos_sim: float = cosine_similarity(embedding, c_emb)
+            chunk_scores.append(
+                {
+                    "chunk_idx": self.chunk_metadata[i]["chunk_idx"],
+                    "movie_idx": self.chunk_metadata[i]["movie_idx"],
+                    "score": cos_sim
+                }
+            )
+        best_movie_score: dict[int, float] = {}
+
+        for chunk_score in chunk_scores:
+            movie_idx = chunk_score["movie_idx"]
+            if (
+                movie_idx not in best_movie_score
+                or chunk_score["score"] > best_movie_score[movie_idx]
+            ):
+                best_movie_score[movie_idx] = chunk_score["score"]
+
+        sorted_movies = sorted(best_movie_score.items(), key=lambda x: x[1], reverse=True)[:limit]
+
+        results: list[ChunkMovieResults] = []
+
+        for movie_id, score in sorted_movies:
+
+            movie: Movie = self.document_map[movie_id]
+
+            results.append({
+                "id": movie_id,
+                "title": movie["title"],
+                "document": movie.get("description", "")[:100],
+                "score": score
+            })
+
+        return results
 
 
 # Command to verify the model
@@ -263,9 +310,24 @@ def embed_chunks():
     movies: list[Movie] = read_data()
     semantic_chunk_model = ChunkedSemanticSearch()
 
-    embeddings = semantic_chunk_model.load_or_create_chunk_embeddings(movies)
+    embeddings: EmbeddingArray = semantic_chunk_model.load_or_create_chunk_embeddings(movies)
     print(f"Generated {len(embeddings)} chunked embeddings")
 
+# Command to search movies using cosine similarities with chunks
+def search_chunked(query:str, limit:int=MAX_RESULTS):
+    movies: list[Movie] = read_data()
+    semantic_chunk_model = ChunkedSemanticSearch()
+
+    embeddings: EmbeddingArray = semantic_chunk_model.load_or_create_chunk_embeddings(movies)
+    results: list[ChunkMovieResults] = semantic_chunk_model.search_chunks(query, limit)
+
+    for i, result in enumerate(results, 1):
+        title: str = result["title"]
+        score: float = result["score"]
+        desc: str = result["document"]
+
+        print(f"\n{i}. {title} (score: {score:.4f})")
+        print(f"    {desc}...")
 
 # Helper function to get cosine similarities between two vectors
 def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:

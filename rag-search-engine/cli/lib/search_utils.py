@@ -19,6 +19,17 @@ class ChunkMetadata(TypedDict):
     movie_idx: int
     chunk_idx: int
     total_chunks: int
+
+class ChunkScore(TypedDict):
+    chunk_idx: int
+    movie_idx: int
+    score: float
+
+class ChunkMovieResults(TypedDict):
+    id: int
+    title: str
+    document: str
+    score: float
     
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
