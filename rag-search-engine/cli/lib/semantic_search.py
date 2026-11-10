@@ -2,6 +2,7 @@ import numpy as np
 import os
 import re
 import json
+import string
 
 from numpy.typing import NDArray
 from sentence_transformers import SentenceTransformer
@@ -291,7 +292,12 @@ def text_chunk(text: str, chunk_size: int, overlap: int) -> list[str]:
 
 # Command to divide text into semantic chunks
 def semantic_chunk(text:str, max_chunk_size: int, overlap: int) -> list[str]:
-    sentences: list[str | Any] = re.split(r"(?<=[.!?])\s+", text)
+    strip_text: str = text.strip()
+    if len(strip_text) == 0:
+        return []
+    sentences: list[str | Any] = re.split(r"(?<=[.!?])\s+", strip_text)
+    if len(sentences) == 1 and not sentences[0].endswith((string.punctuation)):
+        sentences = [text]
 
     chunks: list[str] = []
     i = 0
@@ -300,7 +306,9 @@ def semantic_chunk(text:str, max_chunk_size: int, overlap: int) -> list[str]:
         chunk_sentences = sentences[i : i + max_chunk_size]
         if chunks and len(chunk_sentences) <= overlap:
             break
-        chunks.append(" ".join(chunk_sentences))
+        chunk: str = " ".join(chunk_sentences).strip()
+        if len(chunk) > 0:
+            chunks.append(chunk)
         i += max_chunk_size - overlap
 
     return chunks
