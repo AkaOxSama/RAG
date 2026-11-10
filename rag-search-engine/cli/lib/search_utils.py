@@ -30,6 +30,10 @@ class ChunkMovieResults(TypedDict):
     title: str
     document: str
     score: float
+
+class BM25ScoreMovies(TypedDict):
+    movie_id: int
+    score: float
     
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
