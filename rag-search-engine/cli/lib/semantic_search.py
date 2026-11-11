@@ -210,7 +210,7 @@ class ChunkedSemanticSearch(SemanticSearch):
             movie: Movie = self.document_map[movie_id]
 
             results.append({
-                "id": movie_id,
+                "movie_id": movie_id,
                 "title": movie["title"],
                 "document": movie.get("description", "")[:100],
                 "score": score
@@ -251,7 +251,7 @@ def embed_text(text: str) -> Any:
 def embed_query_text(query: str):
     semantic_model = SemanticSearch()
 
-    embedding = semantic_model.generate_embedding(query)
+    embedding: EmbeddingArray = semantic_model.generate_embedding(query)
 
     print(f"Query: {query}")
     print(f"First 3 dimensions: {embedding[:3]}")
