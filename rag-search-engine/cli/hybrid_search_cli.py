@@ -3,10 +3,12 @@ import argparse
 from lib.hybrid_search import (
     normalize,
     weighted_search_comm,
+    rrf_search_comm,
 )
 from lib.search_utils import (
     MAX_RESULTS,
     ALPHA_CONSTANT,
+    K_CONSTANT,
 )
 
 def main() -> None:
@@ -23,6 +25,13 @@ def main() -> None:
     weighted_search_parser.add_argument("--alpha", nargs="?", type=float, default=ALPHA_CONSTANT, help="Constant to control the weight between the two scores")
     weighted_search_parser.add_argument("--limit", nargs="?", type=int, default=MAX_RESULTS, help="Maximum results returned")
 
+    # RRF Search command
+    rrf_search_parser = subparsers.add_parser("rrf-search", help="Uses a RRF ranking to get movie results")
+    rrf_search_parser.add_argument("query", type=str, help="Query to search for movies")
+    rrf_search_parser.add_argument("-k", type=int, nargs="?", default=K_CONSTANT, help="Constant to weight the searches")
+    rrf_search_parser.add_argument("--limit", type=int, nargs="?", default=MAX_RESULTS, help="Maximum results returned")
+
+
     args = parser.parse_args()
 
     match args.command:
@@ -34,6 +43,9 @@ def main() -> None:
 
         case "weighted-search":
             weighted_search_comm(args.query, args.alpha, args.limit)
+
+        case "rrf-search":
+            rrf_search_comm(args.query, args.k, args.limit)
 
         case _:
             parser.print_help()

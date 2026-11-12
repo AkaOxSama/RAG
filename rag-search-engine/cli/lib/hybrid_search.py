@@ -9,9 +9,11 @@ from .search_utils import (
     BM25ScoreMovies,
     HybridScoresData,
     CombScoreData,
+    CombRRFData,
     MAX_RESULTS,
     ALPHA_CONSTANT,
     MAX_SUB_SEARCH,
+    K_CONSTANT,
 )
 from typing import Any, TypeGuard
 
@@ -84,11 +86,54 @@ class HybridSearch:
 
         return sorted(hybrid_results, key=lambda x: x["hyb_sc"], reverse=True)[:limit]
 
+    # Creates a search return combining the rank score of each search
+    def rrf_search(self, query: str, k: int, limit: int = 10) -> list[CombRRFData]:
+        bm25_search: list[BM25ScoreMovies] = self._bm25_search(query, limit=MAX_SUB_SEARCH)
+        semantic_search: list[ChunkMovieResults] = self.semantic_search.search_chunks(query, limit=MAX_SUB_SEARCH)
 
+        comb_rrf_data: dict[int, CombRRFData] = {}
 
+        for idx, bm25_data in enumerate(bm25_search):
+            doc_id: int = bm25_data["movie_id"]
+            if doc_id not in comb_rrf_data:
+                comb_rrf_data[doc_id] = {
+                    "title": "",
+                    "description": "",
+                    "bm25_rank": idx,
+                    "sem_rank": 0,
+                    "rrf_score": _rrf_score(idx, k),
+                }
 
-    def rrf_search(self, query: str, k: int, limit: int = 10) -> list[dict]:
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+        for idx, sem_data in enumerate(semantic_search):
+            doc_id = sem_data["movie_id"]
+            if doc_id not in comb_rrf_data:
+                comb_rrf_data[doc_id] = {
+                    "title": sem_data["title"],
+                    "description": sem_data["document"][:100],
+                    "bm25_rank": 0,
+                    "sem_rank": idx,
+                    "rrf_score": _rrf_score(idx, k),
+                }
+            else:
+                comb_rrf_data[doc_id]["title"] = sem_data["title"]
+                comb_rrf_data[doc_id]["description"] = sem_data["document"][:100]
+                comb_rrf_data[doc_id]["sem_rank"] = idx
+                comb_rrf_data[doc_id]["rrf_score"] += _rrf_score(idx, k)
+
+        rrf_results: list[CombRRFData] = []
+        for doc_id, data in comb_rrf_data.items():
+            rrf_results.append(
+                {
+                    "title": data["title"],
+                    "description": data["description"],
+                    "bm25_rank": data["bm25_rank"],
+                    "sem_rank": data["sem_rank"],
+                    "rrf_score": data["rrf_score"],
+                }
+            )
+
+        return sorted(rrf_results, key=lambda x: x["rrf_score"], reverse=True)[:limit]
+
 
 
 # Command to normalize scores
@@ -122,6 +167,23 @@ def weighted_search_comm(query: str, alpha=ALPHA_CONSTANT, limit=MAX_RESULTS) ->
         print(f"  Hybrid Score: {result['hyb_sc']:.4f}")
         print(f"  BM25: {result['bm25_sc']:.4f}, Semantic: {result['sem_sc']:.4f}")
         print(f"  {result['description']}...")
+        print()
+
+# Command to get movie searches based on their rrf scores
+def rrf_search_comm(query: str, k=K_CONSTANT, limit=MAX_RESULTS) -> None:
+    movies: list[Movie] = read_data()
+    hybrid_search = HybridSearch(movies)
+
+    search_results: list[CombRRFData] = hybrid_search.rrf_search(query, k, limit)
+
+    for idx, result in enumerate(search_results, 1):
+        print(f"{idx}. {result['title']}")
+        print(f"  RRF Score: {result['rrf_score']:.4f}")
+        print(f"  BM25 Rank: {result['bm25_rank']}, Semantic Rank: {result['sem_rank']}")
+        print(f"  {result['description']}...")
+        print()
+
+
 
 # Helper function to get the hybrid score from the bm25 and semantic scores
 def _hybrid_score(bm25_score: float, semantic_score: float, alpha: float = 0.5) -> float:
@@ -136,3 +198,7 @@ def normalize_search_scores(results):
 
     norm_scores: list[float] = normalize(scores)
     return list(zip(norm_scores, results))
+
+# Helper function to create and RRF Score
+def _rrf_score(rank: int, k: int = 60) -> float:
+    return 1 / (k + rank)

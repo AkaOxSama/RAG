@@ -49,7 +49,12 @@ class CombScoreData(TypedDict):
     sem_score: float
     hyb_score: float
 
-
+class CombRRFData(TypedDict):
+    title: str
+    description: str
+    bm25_rank: int
+    sem_rank: int
+    rrf_score: float
 
     
 # The project root
@@ -73,6 +78,8 @@ DEFAULT_SEMANTIC_CHUNK_SIZE = 4
 
 # Default Alpha Value
 ALPHA_CONSTANT = 0.5
+# Default RRF K Value
+K_CONSTANT = 60
 
 # Saturation control
 BM25_K1 = 1.5
