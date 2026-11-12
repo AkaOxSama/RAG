@@ -1,4 +1,4 @@
-from .search_utils import (
+from lib.search_utils import (
     read_data,
     read_stop_words,
     MAX_RESULTS,

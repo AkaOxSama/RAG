@@ -12,3 +12,5 @@ test.py
 /cache/
 # Ignore the .env file
 .env
+# Ignore test_llm file
+test_llm.py

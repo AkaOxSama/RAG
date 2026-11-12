@@ -1,7 +1,7 @@
 import json
 import os
 
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Literal
 
 # Movie object
 class Movie(TypedDict):
@@ -56,6 +56,14 @@ class CombRRFData(TypedDict):
     sem_rank: int
     rrf_score: float
 
+class RRFSearchCommandResult(TypedDict):
+    original_query: str
+    enhanced_query: str | None
+    enhanced_method: Literal["spell"] | None
+    query: str
+    k: int
+    results: list[CombRRFData]
+
     
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -86,6 +94,14 @@ BM25_K1 = 1.5
 # Lenght normalization control
 BM25_B = 0.75
 
+
+# LLM Prompt
+prompt = """Fix any spelling errors in the user-provided movie search query below.
+Correct only clear, high-confidence typos. Do not rewrite, add, remove, or reorder words.
+Preserve punctuation and capitalization unless a change is required for a typo fix.
+If there are no spelling errors, or if you're unsure, output the original query unchanged.
+Output only the final query text, nothing else.
+"""
 
 # Create a list of stop words
 def read_stop_words() -> list[str]:
