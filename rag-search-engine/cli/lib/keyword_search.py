@@ -6,6 +6,7 @@ from .search_utils import (
     BM25_K1,
     BM25_B,
     Movie,
+    BM25ScoreMovies,
 )
 from nltk.stem import PorterStemmer
 from collections import defaultdict, Counter
@@ -116,10 +117,10 @@ class InvertedIndex:
         return tf * idf
 
     # Returns LIMIT documents based on a BM25 score
-    def bm25_search(self, query: str, limit=MAX_RESULTS) -> list[tuple[int, str]]:
+    def bm25_search(self, query: str, limit=MAX_RESULTS) -> list[BM25ScoreMovies]:
         tokens: list[str] = tokenizer(query)
         scores: dict[int, float] = {}
-        return_scores = []
+        return_scores: list[BM25ScoreMovies] = []
 
         for document in self.docmap.values():
             for token in tokens:
@@ -129,7 +130,10 @@ class InvertedIndex:
         sorted_scores: dict[int, float] = dict(sorted(scores.items(), key=lambda item: item[1], reverse=True)[:limit])
 
         for s_doc_id, s_bm25 in sorted_scores.items():
-            return_scores.append((s_doc_id, s_bm25))
+            return_scores.append({
+                "movie_id": s_doc_id,
+                "score": s_bm25
+            })
 
         return return_scores
 
@@ -280,10 +284,12 @@ def bm25_command(search_query: str) -> list[str]:
 
     format_results: list[str] = []
 
-    document_info: list[tuple[int, str]] = index.bm25_search(search_query)
+    document_info: list[BM25ScoreMovies] = index.bm25_search(search_query)
     for i in range(len(document_info)):
-        movie_title: str = index.docmap[document_info[i][0]]["title"]
-        format_results.append(f"{i + 1}. ({document_info[i][0]}) {movie_title} - Score: {document_info[i][1]:.2f}")
+        movie_id: int = document_info[i]["movie_id"]
+        score = document_info[i]["score"]
+        movie_title: str = index.docmap[movie_id]["title"]
+        format_results.append(f"{i + 1}. ({movie_id}) {movie_title} - Score: {score:.2f}")
 
     return format_results
 

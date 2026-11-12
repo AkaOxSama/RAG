@@ -26,10 +26,36 @@ class ChunkScore(TypedDict):
     score: float
 
 class ChunkMovieResults(TypedDict):
-    id: int
+    movie_id: int
     title: str
     document: str
     score: float
+
+class BM25ScoreMovies(TypedDict):
+    movie_id: int
+    score: float
+
+class HybridScoresData(TypedDict):
+    title: str
+    description: str
+    bm25_sc: float
+    sem_sc: float
+    hyb_sc: float
+
+class CombScoreData(TypedDict):
+    title: str
+    description: str
+    bm25_score: float
+    sem_score: float
+    hyb_score: float
+
+class CombRRFData(TypedDict):
+    title: str
+    description: str
+    bm25_rank: int
+    sem_rank: int
+    rrf_score: float
+
     
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -40,12 +66,20 @@ CACHE_PATH: str = os.path.join(PROJECT_ROOT, "cache")
 
 # Maximum results shown when returning a search
 MAX_RESULTS = 5
+# Maximum results from sub searches for hybird search
+MAX_SUB_SEARCH = 500
+
 # Default Chunk Size
 DEFAULT_CHUNK_SIZE = 200
 DEFAULT_OVERLAP_SIZE = 1 
 
 # Default semantic chunk size
 DEFAULT_SEMANTIC_CHUNK_SIZE = 4
+
+# Default Alpha Value
+ALPHA_CONSTANT = 0.5
+# Default RRF K Value
+K_CONSTANT = 60
 
 # Saturation control
 BM25_K1 = 1.5
