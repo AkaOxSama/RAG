@@ -32,9 +32,11 @@ def main() -> None:
     rrf_search_parser = subparsers.add_parser("rrf-search", help="Uses a RRF ranking to get movie results")
     rrf_search_parser.add_argument("query", type=str, help="Query to search for movies")
     rrf_search_parser.add_argument("-k", type=int, nargs="?", default=K_CONSTANT, help="Constant to weight the searches")
-    #Added support for enhanced queries using LLMs
+    # Added support for enhanced queries using LLMs
     rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
     rrf_search_parser.add_argument("--limit", type=int, nargs="?", default=MAX_RESULTS, help="Maximum results returned")
+    # Added rerank argument
+    rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual"], help="Rerank the search for better results")
 
 
     args = parser.parse_args()
@@ -50,7 +52,7 @@ def main() -> None:
             weighted_search_comm(args.query, args.alpha, args.limit)
 
         case "rrf-search":
-            result: RRFSearchCommandResult = rrf_search_comm(args.query, args.k, args.enhance, args.limit)
+            result: RRFSearchCommandResult = rrf_search_comm(args.query, args.k, args.enhance, args.limit, args.rerank_method)
 
             if result["enhanced_query"]:
                 method = result["enhance_method"]
@@ -59,8 +61,9 @@ def main() -> None:
                 print(f"Enhanced query ({method}): '{original}' -> '{enhanced}'\n")
 
             for idx, data in enumerate(result["results"], 1):
-
                 print(f"{idx}. {data['title']}")
+                if args.rerank_method:
+                    print(f"Re-rank Score: {data['rerank_score']:.4f}/10")
                 print(f"  RRF Score: {data.get("rrf_score", 0):.4f}")
                 print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
                 print(f"  {data['description']}...")

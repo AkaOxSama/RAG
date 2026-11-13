@@ -1,9 +1,13 @@
 import os
+import time
 
 from .keyword_search import InvertedIndex
 from .search_utils import ChunkMovieResults
 from .semantic_search import ChunkedSemanticSearch
-from .query_enhancement import query_modification
+from .query_enhancement import (
+    query_modification,
+    rerank_score_results,
+)
 from lib.search_utils import (
     read_data,
     Movie,
@@ -104,6 +108,7 @@ class HybridSearch:
                     "bm25_rank": idx,
                     "sem_rank": 0,
                     "rrf_score": _rrf_score(idx, k),
+                    "rerank_score": 0
                 }
 
         for idx, sem_data in enumerate(semantic_search):
@@ -115,6 +120,7 @@ class HybridSearch:
                     "bm25_rank": 0,
                     "sem_rank": idx,
                     "rrf_score": _rrf_score(idx, k),
+                    "rerank_score": 0
                 }
             else:
                 comb_rrf_data[doc_id]["title"] = sem_data["title"]
@@ -131,6 +137,7 @@ class HybridSearch:
                     "bm25_rank": data["bm25_rank"],
                     "sem_rank": data["sem_rank"],
                     "rrf_score": data["rrf_score"],
+                    "rerank_score": 0
                 }
             )
 
@@ -172,13 +179,15 @@ def weighted_search_comm(query: str, alpha=ALPHA_CONSTANT, limit=MAX_RESULTS) ->
         print()
 
 # Command to get movie searches based on their rrf scores
-def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite", "expand"] | None = None, limit=MAX_RESULTS) -> RRFSearchCommandResult:
+def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite", "expand"] | None = None, limit=MAX_RESULTS, rerank: Literal["individual"] | None = None) -> RRFSearchCommandResult:
     movies: list[Movie] = read_data()
     hybrid_search = HybridSearch(movies)
 
     
     original_query = query
     enhanced_query = None
+    rerank_method: str | None = None
+    
 
     match enhance:
         case "spell":
@@ -195,13 +204,28 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
         
     search_results: list[CombRRFData] = hybrid_search.rrf_search(query, k, limit)
 
+    match rerank:
+        case "individual":
+            rerank_method = rerank
+            reranked_results: list[CombRRFData] = hybrid_search.rrf_search(query, k, limit=limit*5)
+            for result in reranked_results:
+                title: str = result["title"]
+                document: str = result["description"]
+                result["rerank_score"] = rerank_score_results(query, title, document)
+                time.sleep(3)
+
+            search_results = sorted(reranked_results, key=lambda x: x["rerank_score"], reverse=True)[:limit]
+            
+
     return {
         "original_query": original_query,
+        "rerank_method": rerank_method,
         "enhanced_query": enhanced_query,
         "enhance_method": enhance,
         "query": query,
         "k": k,
-        "results": search_results
+        "results": search_results,
+        
     }
 
 

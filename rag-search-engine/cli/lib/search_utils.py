@@ -55,9 +55,11 @@ class CombRRFData(TypedDict):
     bm25_rank: int
     sem_rank: int
     rrf_score: float
+    rerank_score: int
 
 class RRFSearchCommandResult(TypedDict):
     original_query: str
+    rerank_method: str | None
     enhanced_query: str | None
     enhance_method: str | None
     query: str
@@ -148,3 +150,4 @@ Examples:
 - "comedy with bear" -> "comedy funny bear humor lighthearted"
 
 """
+
