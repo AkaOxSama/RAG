@@ -3,7 +3,7 @@ import os
 from .keyword_search import InvertedIndex
 from .search_utils import ChunkMovieResults
 from .semantic_search import ChunkedSemanticSearch
-from .query_enhancement import enhance_query
+from .query_enhancement import query_modification
 from lib.search_utils import (
     read_data,
     Movie,
@@ -172,22 +172,33 @@ def weighted_search_comm(query: str, alpha=ALPHA_CONSTANT, limit=MAX_RESULTS) ->
         print()
 
 # Command to get movie searches based on their rrf scores
-def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell"] | None = None, limit=MAX_RESULTS) -> RRFSearchCommandResult:
+def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite", "expand"] | None = None, limit=MAX_RESULTS) -> RRFSearchCommandResult:
     movies: list[Movie] = read_data()
     hybrid_search = HybridSearch(movies)
 
+    
     original_query = query
     enhanced_query = None
-    if enhance:
-        enhanced_query = enhance_query(query, method=enhance)
-        query = enhanced_query
 
+    match enhance:
+        case "spell":
+            enhanced_query = query_modification(query, method=enhance)
+            query = enhanced_query
+            
+        case "rewrite":
+            enhanced_query = query_modification(query, method=enhance)
+            query = enhanced_query
+
+        case "expand":
+            enhanced_query = query_modification(query, method=enhance)
+            query = enhanced_query
+        
     search_results: list[CombRRFData] = hybrid_search.rrf_search(query, k, limit)
 
     return {
         "original_query": original_query,
         "enhanced_query": enhanced_query,
-        "enhanced_method": enhance,
+        "enhance_method": enhance,
         "query": query,
         "k": k,
         "results": search_results

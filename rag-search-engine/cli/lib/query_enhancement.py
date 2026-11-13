@@ -3,7 +3,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.chat.chat_completion import ChatCompletion
-from lib.search_utils import prompt 
+from lib.search_utils import (
+    spell_prompt,
+    rewrite_prompt,
+    expand_prompt,
+)
 
 # API Key loader
 load_dotenv()
@@ -18,16 +22,27 @@ client = OpenAI(
 )
 model = "openrouter/free"
 
-def spell_correction(query: str) -> str:
-    response: ChatCompletion = client.chat.completions.create(
-        model=model, messages=[{"role": "user", "content": f"{prompt}\nUser query: {query}"}]
-    )
-    correct_query: str = (response.choices[0].message.content or "").strip().strip('"')
-    return correct_query if correct_query else query
 
-def enhance_query(query: str, method:str | None = None) -> str:
+def query_modification(query: str, method: str | None) -> str:
+    prompt = ""
     match method:
         case "spell":
-            return spell_correction(query)
+            prompt = spell_prompt
+        case "rewrite":
+            prompt = rewrite_prompt
+        case "expand":
+            prompt = expand_prompt
         case _:
             return query
+
+    response = client.chat.completions.create(
+        model=model, messages=[{"role": "user", "content": f"{prompt}\nUser query: {query}"}]
+    )
+    modified_query = (response.choices[0].message.content or "").strip().strip('"')
+
+    if method == "expand":
+        if modified_query:
+            return f"{query} {modified_query}"
+
+    return modified_query if modified_query else query
+

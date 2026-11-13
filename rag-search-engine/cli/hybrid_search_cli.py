@@ -33,7 +33,7 @@ def main() -> None:
     rrf_search_parser.add_argument("query", type=str, help="Query to search for movies")
     rrf_search_parser.add_argument("-k", type=int, nargs="?", default=K_CONSTANT, help="Constant to weight the searches")
     #Added support for enhanced queries using LLMs
-    rrf_search_parser.add_argument("--enhance", type=str, choices=["spell"], help="Query enhancement method")
+    rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
     rrf_search_parser.add_argument("--limit", type=int, nargs="?", default=MAX_RESULTS, help="Maximum results returned")
 
 
@@ -53,7 +53,7 @@ def main() -> None:
             result: RRFSearchCommandResult = rrf_search_comm(args.query, args.k, args.enhance, args.limit)
 
             if result["enhanced_query"]:
-                method = result["enhanced_method"]
+                method = result["enhance_method"]
                 original = result["original_query"]
                 enhanced = result["enhanced_query"]
                 print(f"Enhanced query ({method}): '{original}' -> '{enhanced}'\n")
