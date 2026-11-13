@@ -6,8 +6,11 @@
 __pycache__/
 # Ignore the readme for now
 README.md
-
+# Ignore the test file
 test.py
-
 # Ignore the cache folder
 /cache/
+# Ignore the .env file
+.env
+# Ignore test_llm file
+test_llm.py
