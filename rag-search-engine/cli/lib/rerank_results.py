@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.chat.chat_completion import ChatCompletion
+from .search_utils import(
+    CombRRFData,
+)
 
 # API Key loader
 load_dotenv()
@@ -21,7 +24,7 @@ client = OpenAI(
 model = "openrouter/free"
 
 
-# Function to rerank movies result via AI to create a new score based on the query
+# Function to create movie results through AI to create a new score based on the query and it's relevance with the title and the description
 def rerank_score_results(query: str, title: str, document: str) -> int:
     response: ChatCompletion = client.chat.completions.create(
         model=model, messages=[{
@@ -50,3 +53,39 @@ Score:"""
     if not match:
         return 0
     return int(match.group(1))
+
+# Function to create movie results through AI to create a new list of scores based on the query and it's relevance through all the results
+def rerank_list_score_results(query: str, documents: list[CombRRFData]) -> list[int]:
+    doc_map: list[str] = []
+
+    for doc in documents:
+        doc_map.append(f"ID: {doc['movie_id']}, Title: {doc['title']}, Description: {doc['description']}")
+
+    doc_list_str = "\n".join(doc_map)
+
+
+    response = client.chat.completions.create(
+        model=model, messages=[{
+            "role": "user",
+            "content": f"""Rank the movies listed below by relevance to the following search query.
+
+Query: "{query}"
+
+Movies:
+{doc_list_str}
+
+Return the movie IDs in order of relevance, best match first.
+
+Your response must be a raw JSON array of integers.
+Do not wrap the JSON in Markdown. Do not use a ```json code block.
+Do not include any explanatory text.
+
+For example:
+[75, 12, 34, 2, 1]
+
+Ranking:"""
+        }]
+    )
+
+    content: list[int] = json.loads((response.choices[0].message.content) or "[]")
+    return content

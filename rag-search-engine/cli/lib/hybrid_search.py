@@ -9,6 +9,7 @@ from .query_enhancement import (
 )
 from .rerank_results import (
     rerank_score_results,
+    rerank_list_score_results,
 )
 from lib.search_utils import (
     read_data,
@@ -105,6 +106,7 @@ class HybridSearch:
             doc_id: int = bm25_data["movie_id"]
             if doc_id not in comb_rrf_data:
                 comb_rrf_data[doc_id] = {
+                    "movie_id": doc_id,
                     "title": "",
                     "description": "",
                     "bm25_rank": idx,
@@ -117,6 +119,7 @@ class HybridSearch:
             doc_id = sem_data["movie_id"]
             if doc_id not in comb_rrf_data:
                 comb_rrf_data[doc_id] = {
+                    "movie_id": doc_id,
                     "title": sem_data["title"],
                     "description": sem_data["document"][:100],
                     "bm25_rank": 0,
@@ -134,6 +137,7 @@ class HybridSearch:
         for doc_id, data in comb_rrf_data.items():
             rrf_results.append(
                 {
+                    "movie_id": doc_id,
                     "title": data["title"],
                     "description": data["description"],
                     "bm25_rank": data["bm25_rank"],
@@ -181,7 +185,7 @@ def weighted_search_comm(query: str, alpha=ALPHA_CONSTANT, limit=MAX_RESULTS) ->
         print()
 
 # Command to get movie searches based on their rrf scores
-def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite", "expand"] | None = None, limit=MAX_RESULTS, rerank: Literal["individual"] | None = None) -> RRFSearchCommandResult:
+def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite", "expand"] | None = None, limit=MAX_RESULTS, rerank: Literal["individual", "batch"] | None = None) -> RRFSearchCommandResult:
     movies: list[Movie] = read_data()
     hybrid_search = HybridSearch(movies)
 
@@ -217,6 +221,14 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
                 time.sleep(3)
 
             search_results = sorted(reranked_results, key=lambda x: x["rerank_score"], reverse=True)[:limit]
+        case "batch":
+            rerank_method = rerank
+            reranked_results = hybrid_search.rrf_search(query, k, limit=limit*5)
+            batch_id_scores: list[int] = rerank_list_score_results(query, reranked_results)
+
+            order_map = {movie_id: i for i, movie_id in enumerate(batch_id_scores)}
+
+            search_results = sorted(reranked_results, key=lambda x : order_map.get(x["movie_id"], float("inf")))[:limit]
             
 
     return {

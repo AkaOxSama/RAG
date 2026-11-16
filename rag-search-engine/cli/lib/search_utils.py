@@ -1,7 +1,7 @@
 import json
 import os
 
-from typing import Any, TypedDict, Literal
+from typing import Any, TypedDict, Literal, NotRequired
 
 # Movie object
 class Movie(TypedDict):
@@ -50,6 +50,7 @@ class CombScoreData(TypedDict):
     hyb_score: float
 
 class CombRRFData(TypedDict):
+    movie_id: int
     title: str
     description: str
     bm25_rank: int
@@ -109,6 +110,12 @@ def read_data() -> list[Movie]:
     with open(MOVIES_DATA_PATH, "r") as data_file:
         movies_data_dict = json.load(data_file)
     return movies_data_dict["movies"]
+
+# Create a base print of a index and data dictionary
+def print_base_result(data: CombRRFData) -> None:
+    print(f"  RRF Score: {data.get("rrf_score", 0):.4f}")
+    print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
+    print(f"  {data['description']}...")
 
 
 # LLM Prompts
