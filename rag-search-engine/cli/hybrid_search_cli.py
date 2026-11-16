@@ -37,7 +37,7 @@ def main() -> None:
     rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
     rrf_search_parser.add_argument("--limit", type=int, nargs="?", default=MAX_RESULTS, help="Maximum results returned")
     # Added rerank argument
-    rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual", "batch"], help="Rerank the search for better results")
+    rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual", "batch", "cross_encoder"], help="Rerank the search for better results")
 
 
     args = parser.parse_args()
@@ -79,6 +79,7 @@ def main() -> None:
                             print(f"{idx}. {data['title']}")
                             print(f"Re-rank Score: {data['rerank_score']:.4f}/10")
                             print_base_result(data)
+                            print()
 
                     case "batch":
                         for idx, data in enumerate(result["results"], 1):
@@ -86,12 +87,25 @@ def main() -> None:
                             print(f"Re-rank Rank: {idx}")
                             print(f"RRF Score: {data['rrf_score']:.4f}")
                             print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
-                            print(f"  {data['description']}...")
+                            print(f"  {data['description'][:100]}...")
+                            print()
+
+                    case "cross_encoder":
+                        assert result["cross_scores"] is not None
+
+                        for idx, data in enumerate(result["results"], 1):
+                            print(f"{idx}. {data['title']}")
+                            print(f"Cross Encoder Score: {result['cross_scores'][idx]:.4f}")
+                            print(f"RRF Score: {data['rrf_score']:.4f}")
+                            print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
+                            print(f"  {data['description'][:100]}...")
+                            print()
 
                     case _:
                         for idx, data in enumerate(result["results"], 1):
                             print(f"{idx}. {data['title']}")
                             print_base_result(data)
+                            print()
 
         case _:
             parser.print_help()

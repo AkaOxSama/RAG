@@ -55,7 +55,7 @@ Score:"""
     return int(match.group(1))
 
 # Function to create movie results through AI to create a new list of scores based on the query and it's relevance through all the results
-def rerank_list_score_results(query: str, documents: list[CombRRFData]) -> list[int]:
+def rerank_list_score_results(query: str, documents: list[CombRRFData], limit: int) -> list[int]:
     doc_map: list[str] = []
 
     for doc in documents:
@@ -88,4 +88,4 @@ Ranking:"""
     )
 
     content: list[int] = json.loads((response.choices[0].message.content) or "[]")
-    return content
+    return content[:limit]

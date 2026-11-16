@@ -19,12 +19,15 @@ from lib.search_utils import (
     CombScoreData,
     CombRRFData,
     RRFSearchCommandResult,
+    CrossRefArray,
     MAX_RESULTS,
     ALPHA_CONSTANT,
     MAX_SUB_SEARCH,
     K_CONSTANT,
 )
 from typing import Any, TypeGuard, Literal
+from sentence_transformers import CrossEncoder
+
 
 
 class HybridSearch:
@@ -70,7 +73,7 @@ class HybridSearch:
             if doc_id not in comb_results:
                 comb_results[doc_id] = {
                     "title": semantic_data["title"],
-                    "description": semantic_data["document"][:100],
+                    "description": semantic_data["document"],
                     "bm25_score": 0.0,
                     "sem_score": 0.0,
                     "hyb_score": 0.0,
@@ -121,7 +124,7 @@ class HybridSearch:
                 comb_rrf_data[doc_id] = {
                     "movie_id": doc_id,
                     "title": sem_data["title"],
-                    "description": sem_data["document"][:100],
+                    "description": sem_data["document"],
                     "bm25_rank": 0,
                     "sem_rank": idx,
                     "rrf_score": _rrf_score(idx, k),
@@ -129,7 +132,7 @@ class HybridSearch:
                 }
             else:
                 comb_rrf_data[doc_id]["title"] = sem_data["title"]
-                comb_rrf_data[doc_id]["description"] = sem_data["document"][:100]
+                comb_rrf_data[doc_id]["description"] = sem_data["document"]
                 comb_rrf_data[doc_id]["sem_rank"] = idx
                 comb_rrf_data[doc_id]["rrf_score"] += _rrf_score(idx, k)
 
@@ -185,7 +188,7 @@ def weighted_search_comm(query: str, alpha=ALPHA_CONSTANT, limit=MAX_RESULTS) ->
         print()
 
 # Command to get movie searches based on their rrf scores
-def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite", "expand"] | None = None, limit=MAX_RESULTS, rerank: Literal["individual", "batch"] | None = None) -> RRFSearchCommandResult:
+def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite", "expand"] | None = None, limit=MAX_RESULTS, rerank: Literal["individual", "batch", "cross_encoder"] | None = None) -> RRFSearchCommandResult:
     movies: list[Movie] = read_data()
     hybrid_search = HybridSearch(movies)
 
@@ -221,14 +224,31 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
                 time.sleep(3)
 
             search_results = sorted(reranked_results, key=lambda x: x["rerank_score"], reverse=True)[:limit]
+
         case "batch":
             rerank_method = rerank
             reranked_results = hybrid_search.rrf_search(query, k, limit=limit*5)
-            batch_id_scores: list[int] = rerank_list_score_results(query, reranked_results)
+            batch_id_scores: list[int] = rerank_list_score_results(query, reranked_results, limit=limit)
 
             order_map = {movie_id: i for i, movie_id in enumerate(batch_id_scores)}
 
             search_results = sorted(reranked_results, key=lambda x : order_map.get(x["movie_id"], float("inf")))[:limit]
+
+        case "cross_encoder":
+            rerank_method = rerank
+            reranked_results = hybrid_search.rrf_search(query, k, limit=limit*5)
+
+            pairs: list[list[str]] = []
+            for result in reranked_results:
+                pairs.append([query, f"{result.get("title", "")} - {result.get("description", "")}"])
+
+            cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2", device="cpu")
+
+            scores: CrossRefArray = cross_encoder.predict(pairs)
+
+            reranked_results = [result for _, result in sorted(zip(scores, reranked_results), key=lambda x: x[0], reverse=True)]
+
+            search_results = reranked_results[:limit]
             
 
     return {
@@ -239,6 +259,7 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
         "query": query,
         "k": k,
         "results": search_results,
+        "cross_scores": scores
         
     }
 

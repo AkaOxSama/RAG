@@ -2,6 +2,10 @@ import json
 import os
 
 from typing import Any, TypedDict, Literal, NotRequired
+from numpy.typing import NDArray
+
+# Array Typecast for cross reference scores
+CrossRefArray = NDArray[Any]
 
 # Movie object
 class Movie(TypedDict):
@@ -66,6 +70,7 @@ class RRFSearchCommandResult(TypedDict):
     query: str
     k: int
     results: list[CombRRFData]
+    cross_scores: CrossRefArray | None
 
     
 # The project root
@@ -115,7 +120,7 @@ def read_data() -> list[Movie]:
 def print_base_result(data: CombRRFData) -> None:
     print(f"  RRF Score: {data.get("rrf_score", 0):.4f}")
     print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
-    print(f"  {data['description']}...")
+    print(f"  {data['description'][:100]}...")
 
 
 # LLM Prompts
