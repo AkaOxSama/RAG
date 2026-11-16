@@ -1,4 +1,6 @@
 import os
+
+
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
@@ -35,7 +37,7 @@ def query_modification(query: str, method: str | None) -> str:
         case _:
             return query
 
-    response = client.chat.completions.create(
+    response: ChatCompletion = client.chat.completions.create(
         model=model, messages=[{"role": "user", "content": f"{prompt}\nUser query: {query}"}]
     )
     modified_query = (response.choices[0].message.content or "").strip().strip('"')
@@ -45,4 +47,8 @@ def query_modification(query: str, method: str | None) -> str:
             return f"{query} {modified_query}"
 
     return modified_query if modified_query else query
+
+
+    
+
 
