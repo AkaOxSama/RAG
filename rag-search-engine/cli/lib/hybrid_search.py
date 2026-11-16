@@ -6,6 +6,8 @@ from .search_utils import ChunkMovieResults
 from .semantic_search import ChunkedSemanticSearch
 from .query_enhancement import (
     query_modification,
+)
+from .rerank_results import (
     rerank_score_results,
 )
 from lib.search_utils import (
