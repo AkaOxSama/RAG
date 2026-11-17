@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from lib.hybrid_search import (
     normalize,
@@ -11,8 +12,8 @@ from lib.search_utils import (
     K_CONSTANT,
     print_base_result,
 )
-
 from lib.search_utils import RRFSearchCommandResult
+from lib.evaluation import evaluate_command
 
 
 def main() -> None:
@@ -38,6 +39,8 @@ def main() -> None:
     rrf_search_parser.add_argument("--limit", type=int, nargs="?", default=MAX_RESULTS, help="Maximum results returned")
     # Added rerank argument
     rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual", "batch", "cross_encoder"], help="Rerank the search for better results")
+    # Ask AI to rank the relevance of the results
+    rrf_search_parser.add_argument("--evaluate", action="store_true", help="Creates a re-evaluation of the results based on AI response")
 
 
     args = parser.parse_args()
@@ -59,17 +62,16 @@ def main() -> None:
             is_rerank: bool = result["rerank_method"] is not None
             
             
+            
             if is_enhanced:
                 method = result["enhance_method"]
                 original = result["original_query"]
                 enhanced = result["enhanced_query"]
                 print(f"Enhanced query ({method}): '{original}' -> '{enhanced}'\n")
                 print()
-                for idx, data in enumerate(result["results"], 1):
-                    print(f"{idx}. {data['title']}")
-                    print_base_result(data)
 
-            elif is_rerank:
+
+            if is_rerank:
                 print(f"Re-ranking top {args.limit} results using {result['rerank_method']} method")
                 print(f"Reciprocal Rank Fusion Results for '{args.query if not is_enhanced else result["enhanced_query"]}' (k={args.k}):")
                 print()
@@ -80,6 +82,7 @@ def main() -> None:
                             print(f"Re-rank Score: {data['rerank_score']:.4f}/10")
                             print_base_result(data)
                             print()
+                        sys.exit(0)
 
                     case "batch":
                         for idx, data in enumerate(result["results"], 1):
@@ -89,6 +92,7 @@ def main() -> None:
                             print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
                             print(f"  {data['description'][:100]}...")
                             print()
+                        sys.exit(0)
 
                     case "cross_encoder":
                         assert result["cross_scores"] is not None
@@ -100,12 +104,22 @@ def main() -> None:
                             print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
                             print(f"  {data['description'][:100]}...")
                             print()
+                        sys.exit(0)
 
                     case _:
                         for idx, data in enumerate(result["results"], 1):
                             print(f"{idx}. {data['title']}")
                             print_base_result(data)
                             print()
+                        sys.exit(0)
+
+            if args.evaluate:
+                re_evaluation: list[str] = evaluate_command(args.query, result)
+
+                for eva in re_evaluation:
+                    print(eva)
+                sys.exit(0)
+            
             else:
                 for idx, data in enumerate(result["results"], 1):
                     print(f"{idx}. {data['title']}")

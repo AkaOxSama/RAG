@@ -78,14 +78,12 @@ class GoldenDataset(TypedDict):
 
 class PrecisionKResults(TypedDict):
     precision_k: float
+    recall:float
+    f1_score: float
     retrieved: list[str]
     relevant: list[str]
 
-
-
-
-
-    
+ 
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 

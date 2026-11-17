@@ -29,6 +29,8 @@ def main() -> None:
     for query, data in precision_results.items():
         print(f"- Query: {query}")
         print(f"  - Precision@{limit}: {data['precision_k']:.4f}")
+        print(f"  - Recall@{limit}: {data['recall']:.4f}")
+        print(f"  - F1 Score: {data['f1_score']:.4f}")
         print(f"  - Retrieved: {data['retrieved']}")
         print(f"  - Relevant: {data['relevant']}")
         print()

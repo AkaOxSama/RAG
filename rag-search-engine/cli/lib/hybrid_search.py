@@ -194,6 +194,7 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
 
     
     original_query = query
+
     enhanced_query = None
     rerank_method: str | None = None
     cross_scores = None
@@ -211,7 +212,8 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
         case "expand":
             enhanced_query = query_modification(query, method=enhance)
             query = enhanced_query
-        
+
+
     search_results: list[CombRRFData] = hybrid_search.rrf_search(query, k, limit)
 
     match rerank:
@@ -250,6 +252,8 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
             reranked_results = [result for _, result in sorted(zip(cross_scores, reranked_results), key=lambda x: x[0], reverse=True)]
 
             search_results = reranked_results[:limit]
+
+
             
 
     return {
