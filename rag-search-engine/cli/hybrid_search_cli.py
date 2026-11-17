@@ -69,7 +69,7 @@ def main() -> None:
                     print(f"{idx}. {data['title']}")
                     print_base_result(data)
 
-            if is_rerank:
+            elif is_rerank:
                 print(f"Re-ranking top {args.limit} results using {result['rerank_method']} method")
                 print(f"Reciprocal Rank Fusion Results for '{args.query if not is_enhanced else result["enhanced_query"]}' (k={args.k}):")
                 print()
@@ -106,6 +106,11 @@ def main() -> None:
                             print(f"{idx}. {data['title']}")
                             print_base_result(data)
                             print()
+            else:
+                for idx, data in enumerate(result["results"], 1):
+                    print(f"{idx}. {data['title']}")
+                    print_base_result(data)
+                    print()
 
         case _:
             parser.print_help()

@@ -63,8 +63,7 @@ class InvertedIndex:
 
     # Return the frequency of a single token on a given id
     def get_tf(self, doc_id: int, term: str) -> int:
-        token: str = single_tokenizer(term)
-        return self.term_frequencies[doc_id][token]
+        return self.term_frequencies[doc_id].get(term, 0)
 
     # Return each id from a token in ascending order
     def get_documents(self, term: str) -> list[int]:
@@ -94,6 +93,8 @@ class InvertedIndex:
 
     # Return the BM25 TF socre from a term and a document ID
     def get_bm25_tf(self, doc_id: int, term: str, k1:float = BM25_K1, b:float = BM25_B) -> float:
+
+
         token: str = single_tokenizer(term)
         tf: int = self.get_tf(doc_id, token)
 
@@ -351,7 +352,10 @@ def p_stop_words(stop_words: list[str]) -> list[str]:
 
 # Helper function to tokenize a single term
 def single_tokenizer(term: str) -> str:
-    token: list[str] = tokenizer(term)
-    if len(token) != 1:
-        raise ValueError("Invalid token")
-    return token[0]
+    proc_text: str = string_filter(term)
+    tokens: list[str] = token_converter(proc_text)
+
+    if not tokens:
+        raise ValueError(f"Invalid token: {term!r}")
+
+    return tokens[0]

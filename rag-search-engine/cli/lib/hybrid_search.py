@@ -196,6 +196,7 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
     original_query = query
     enhanced_query = None
     rerank_method: str | None = None
+    cross_scores = None
     
 
     match enhance:
@@ -244,9 +245,9 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
 
             cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2", device="cpu")
 
-            scores: CrossRefArray = cross_encoder.predict(pairs)
+            cross_scores: CrossRefArray | None = cross_encoder.predict(pairs)
 
-            reranked_results = [result for _, result in sorted(zip(scores, reranked_results), key=lambda x: x[0], reverse=True)]
+            reranked_results = [result for _, result in sorted(zip(cross_scores, reranked_results), key=lambda x: x[0], reverse=True)]
 
             search_results = reranked_results[:limit]
             
@@ -259,7 +260,7 @@ def rrf_search_comm(query: str, k=K_CONSTANT, enhance: Literal["spell", "rewrite
         "query": query,
         "k": k,
         "results": search_results,
-        "cross_scores": scores
+        "cross_scores": cross_scores
         
     }
 
