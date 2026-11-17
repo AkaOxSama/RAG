@@ -72,13 +72,25 @@ class RRFSearchCommandResult(TypedDict):
     results: list[CombRRFData]
     cross_scores: CrossRefArray | None
 
-    
+class GoldenDataset(TypedDict):
+    query: str
+    relevant_docs: list[str]
+
+class PrecisionKResults(TypedDict):
+    precision_k: float
+    recall:float
+    f1_score: float
+    retrieved: list[str]
+    relevant: list[str]
+
+ 
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 MOVIES_DATA_PATH: str = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOPWORDS_PATH: str = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 CACHE_PATH: str = os.path.join(PROJECT_ROOT, "cache")
+GOLDEN_DATA_PATH: str = os.path.join(PROJECT_ROOT, "data", "golden_dataset.json")
 
 # Maximum results shown when returning a search
 MAX_RESULTS = 5
@@ -102,6 +114,8 @@ BM25_K1 = 1.5
 # Lenght normalization control
 BM25_B = 0.75
 
+PRECISION_K = 5
+
 
 
 # Create a list of stop words
@@ -121,6 +135,12 @@ def print_base_result(data: CombRRFData) -> None:
     print(f"  RRF Score: {data.get("rrf_score", 0):.4f}")
     print(f"  BM25 Rank: {data.get("bm25_rank", 0)}, Semantic Rank: {data.get("sem_rank", 0)}")
     print(f"  {data['description'][:100]}...")
+
+# Create a golden dataset from golden_dataset.json
+def read_golden_data() -> list[GoldenDataset]:
+    with open(GOLDEN_DATA_PATH, "r") as f:
+        golden_dataset = json.load(f)
+    return golden_dataset["test_cases"]
 
 
 # LLM Prompts
