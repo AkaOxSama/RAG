@@ -83,6 +83,10 @@ class PrecisionKResults(TypedDict):
     retrieved: list[str]
     relevant: list[str]
 
+class SearchWithAIResponse(TypedDict):
+    search_result: list[str]
+    llm_response: str
+
  
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
