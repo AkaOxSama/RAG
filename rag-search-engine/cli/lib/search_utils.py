@@ -87,6 +87,10 @@ class SearchWithAIResponse(TypedDict):
     search_result: list[str]
     llm_response: str
 
+class ImageResponse(TypedDict):
+    response: str
+    total_tokens: int
+
  
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
