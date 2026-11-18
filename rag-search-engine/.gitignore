@@ -4,8 +4,6 @@
 /data/
 # Ignore __pycache__
 __pycache__/
-# Ignore the readme for now
-README.md
 # Ignore the test file
 test.py
 # Ignore the cache folder
