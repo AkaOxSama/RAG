@@ -91,6 +91,12 @@ class ImageResponse(TypedDict):
     response: str
     total_tokens: int
 
+class ImageSearchResult(TypedDict):
+    movie_id: int
+    title: str
+    description: str
+    score: float
+
  
 # The project root
 PROJECT_ROOT: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
